@@ -1,0 +1,24 @@
+language: cpp
+sudo: false
+
+compiler:
+  - gcc
+
+# We need a newer gcc for -mavx2 and -fsanitize=undefined
+env:
+  matrix:
+    - PLUS=g++-4.9 MINUS=gcc-4.9
+# clang is failing with an illegal instruction error
+#    - PLUS=clang++ MINUS=clang
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.9
+
+before_script:
+  - export CXX=$PLUS CC=$MINUS
+
+script: make && ./test/correctness/hashunit.exe && ./test/correctness/uniform_sanity.exe && ./test/correctness/clmulunit.exe

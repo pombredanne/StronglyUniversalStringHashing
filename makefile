@@ -1,16 +1,46 @@
 .SUFFIXES:
-#
-.SUFFIXES: .cpp .o .c .h
 
-CFLAGS = -std=gnu99 -funroll-loops -O3 -Wall -march=native -Wextra -Wcast-align  
+.phony: all clean analysis-target test-target benchmark-target
 
-all:  multilinearhashing
+FLAGS = -ggdb -O2 -mavx -mavx2 -march=native -Wall -Wextra -Wstrict-overflow \
+        -Wstrict-aliasing -funroll-loops -fno-strict-aliasing
+DEBUGFLAGS = $(FLAGS) -ggdb3 -O0 -fno-unroll-loops -fsanitize=undefined
+CFLAGS = $(FLAGS) -std=gnu99
+CDEBUGFLAGS = $(DEBUGFLAGS) -std=gnu99
+CXXFLAGS = $(FLAGS) -std=c++0x
+CXXDEBUGFLAGS = $(DEBUGFLAGS) -std=c++0x
+export
 
-multilinearhashing: multilinearhashing.c clmul.h 
-	$(CC) $(CFLAGS) -o multilinearhashing multilinearhashing.c  
+all: test-target benchmark-target
 
-multilinearhashingcl: multilinearhashing.c  
-	$(CC) $(CFLAGS) -mpclmul -o multilinearhashingcl multilinearhashing.c  
+analysis-target:
+	$(MAKE) -C analysis
 
-clean: 
-	rm -f multilinearhashing
+test-target:
+	$(MAKE) -C include
+	$(MAKE) -C test
+
+benchmark-target:
+	$(MAKE) -C include
+	$(MAKE) -C benchmark
+
+%.exe: src/%.cc $(shell find include -iname '*.h') $(shell find include -iname '*.c')
+	$(MAKE) -C include
+	$(CXX) $(CXXFLAGS) -o $@ $< include/*/*.o -Iinclude
+
+%.exe: src/%.c $(shell find include -iname '*.h') $(shell find include -iname '*.c')
+	$(MAKE) -C include
+	$(CC) $(CFLAGS) -o $@ $< include/*/*.o -Iinclude
+
+%.o: src/%.c $(shell find include -iname '*.h') $(shell find include -iname '*.c')
+	$(MAKE) -C include
+	$(CC) $(CFLAGS) -o $@ -c $< -Iinclude
+
+variablelengthbenchmark-unaligned.exe: variablelengthbenchmark.exe
+	ln -sf variablelengthbenchmark.exe variablelengthbenchmark-unaligned.exe
+
+clean:
+	$(MAKE) -C analysis clean
+	$(MAKE) -C test clean
+	$(MAKE) -C benchmark clean
+	$(MAKE) -C include clean
